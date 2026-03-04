@@ -112,6 +112,11 @@ def run_audit():
     history_path = history.save_report(report_data)
     print(f"  History: {history_path}\n")
 
+    # Cleanup old history - keep only last 5
+    deleted = history.delete_old_reports(keep=5)
+    if deleted > 0:
+        print(f"  Cleaned up {deleted} old audit(s)\n")
+
     # Cleanup old reports - keep only last 10
     all_reports = sorted(glob.glob("reports/report_*.html")) + sorted(
         glob.glob("reports/report_*.json")
