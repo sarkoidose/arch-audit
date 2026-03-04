@@ -7,8 +7,7 @@ __pycache__/
 .coverage
 
 # Reports (generated)
-reports/report_*.html
-reports/report_*.json
+reports/
 
 # IDE
 .vscode/
