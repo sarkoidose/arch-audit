@@ -1,11 +1,11 @@
 ```
-    ╔═══════════════════════════════════════════════════════════╗
-    ║                     🔍 ARCH-AUDIT 🔍                      ║
-    ║    Professional System Audit Tool for Arch Linux          ║
-    ║                                                           ║
-    ║         Smart Detection • 8-Domain Analysis              ║
-    ║      Interactive Reports • Automated Cleanup             ║
-    ╚═══════════════════════════════════════════════════════════╝
+╔════════════════════════════════════════════════════════════════╗
+║                   🔍 ARCH-AUDIT 🔍                             ║
+║           Professional System Audit Tool for Arch Linux        ║
+║                                                                ║
+║             Smart Detection • 8-Domain Analysis                ║
+║          Interactive Reports • Automated Cleanup               ║
+╚════════════════════════════════════════════════════════════════╝
 ```
 
 <div align="center">
