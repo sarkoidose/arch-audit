@@ -174,6 +174,23 @@ def main():
     # Run audit for remaining commands
     report_data = run_audit()
 
+    # Handle diff before other audit commands (uses latest history, not new audit)
+    if args.diff:
+        history = History()
+        comparison = history.compare_reports(0, 1)
+        if "error" in comparison:
+            print(f"\n❌ {comparison['error']}\n")
+        else:
+            print("\n📊 Audit Comparison:\n")
+            print(f"Report 1: {comparison['report1']['timestamp']}")
+            print(f"Report 2: {comparison['report2']['timestamp']}")
+            print("\nChanges:")
+            for severity, change in comparison["changes"].items():
+                symbol = "↑" if change > 0 else "↓" if change < 0 else "→"
+                print(f"  {severity.upper():8}: {symbol} {abs(change):+d}")
+            print()
+        return
+
     # Handle audit commands
     if args.auto_fix:
         autofix = AutoFix()
@@ -194,22 +211,6 @@ def main():
             print(f"✅ Exported: {Path(filepath).name}\n")
         except Exception as e:
             print(f"❌ Export failed: {e}\n")
-        return
-
-    if args.diff:
-        history = History()
-        comparison = history.compare_reports(0, 1)
-        if "error" in comparison:
-            print(f"\n❌ {comparison['error']}\n")
-        else:
-            print("\n📊 Audit Comparison:\n")
-            print(f"Report 1: {comparison['report1']['timestamp']}")
-            print(f"Report 2: {comparison['report2']['timestamp']}")
-            print("\nChanges:")
-            for severity, change in comparison["changes"].items():
-                symbol = "↑" if change > 0 else "↓" if change < 0 else "→"
-                print(f"  {severity.upper():8}: {symbol} {abs(change):+d}")
-            print()
         return
 
     # Default: Start TUI
