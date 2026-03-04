@@ -13,7 +13,6 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue)](https://www.python.org/downloads/)
 [![Arch Linux](https://img.shields.io/badge/Target-Arch%20Linux-1793D1?logo=archlinux)](https://archlinux.org)
-[![GitHub](https://img.shields.io/badge/GitHub-sarkoidose%2Farch--audit-black?logo=github)](https://github.com/sarkoidose/arch-audit)
 
 **A professional, intelligent system auditor that identifies real cleanup candidates, not false positives.**
 
