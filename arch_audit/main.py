@@ -14,6 +14,7 @@ from .config import Config
 from .history import History
 from .autofix import AutoFix
 from .export import Exporter
+from .menu import MenuTUI
 
 
 def parse_args():
@@ -129,6 +130,40 @@ def run_audit():
 def main():
     """Main entry point."""
     args = parse_args()
+
+    # Show interactive menu if no arguments provided
+    if len(sys.argv) == 1:
+        command = MenuTUI.display_menu()
+        if command == "quit":
+            print("\n✓ Goodbye!\n")
+            return
+        elif command == "audit":
+            args.auto_fix = False
+            args.preview = False
+            args.export = None
+            args.diff = False
+            args.stats = False
+            args.history = False
+            args.config = False
+            args.create_config = False
+        elif command == "history":
+            args.history = True
+        elif command == "stats":
+            args.stats = True
+        elif command == "diff":
+            args.diff = True
+        elif command == "preview":
+            args.preview = True
+        elif command == "autofix":
+            args.auto_fix = True
+        elif command == "export":
+            export_format = MenuTUI.handle_export_menu()
+            if export_format:
+                args.export = export_format
+            else:
+                return
+        elif command == "config":
+            args.config = True
 
     # Handle config commands first (no audit needed)
     if args.config:

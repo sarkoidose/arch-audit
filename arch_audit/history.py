@@ -44,8 +44,13 @@ class History:
         if not reports:
             return None
 
-        with open(reports[0]) as f:
-            return json.load(f)
+        for report_file in reports:
+            try:
+                with open(report_file) as f:
+                    return json.load(f)
+            except json.JSONDecodeError:
+                continue
+        return None
 
     def get_report(self, index: int = 0) -> Optional[Dict[str, Any]]:
         """Get report by index (0 = latest, 1 = previous, etc.)."""
@@ -53,8 +58,11 @@ class History:
         if index >= len(reports):
             return None
 
-        with open(reports[index]) as f:
-            return json.load(f)
+        try:
+            with open(reports[index]) as f:
+                return json.load(f)
+        except json.JSONDecodeError:
+            return None
 
     def list_reports(self, limit: int = 10) -> List[Dict[str, str]]:
         """List recent audit reports."""
@@ -62,20 +70,24 @@ class History:
         result = []
 
         for i, report_file in enumerate(reports):
-            with open(report_file) as f:
-                data = json.load(f)
+            try:
+                with open(report_file) as f:
+                    data = json.load(f)
 
-            timestamp = report_file.stem.replace("audit_", "")
-            critical_count = len(data.get("critical", []))
-            high_count = len(data.get("high", []))
+                timestamp = report_file.stem.replace("audit_", "")
+                critical_count = len(data.get("critical", []))
+                high_count = len(data.get("high", []))
 
-            result.append({
-                "index": i,
-                "timestamp": timestamp,
-                "file": report_file.name,
-                "critical": critical_count,
-                "high": high_count,
-            })
+                result.append({
+                    "index": i,
+                    "timestamp": timestamp,
+                    "file": report_file.name,
+                    "critical": critical_count,
+                    "high": high_count,
+                })
+            except json.JSONDecodeError:
+                # Skip corrupted JSON files
+                continue
 
         return result
 
@@ -129,15 +141,19 @@ class History:
         }
 
         for report_file in sorted(reports):
-            with open(report_file) as f:
-                data = json.load(f)
+            try:
+                with open(report_file) as f:
+                    data = json.load(f)
 
-            for severity in ["critical", "high", "medium", "low"]:
-                count = len(data.get(severity, []))
-                stats["trends"][severity].append({
-                    "timestamp": report_file.stem.replace("audit_", ""),
-                    "count": count,
-                })
+                for severity in ["critical", "high", "medium", "low"]:
+                    count = len(data.get(severity, []))
+                    stats["trends"][severity].append({
+                        "timestamp": report_file.stem.replace("audit_", ""),
+                        "count": count,
+                    })
+            except json.JSONDecodeError:
+                # Skip corrupted files
+                continue
 
         return stats
 
