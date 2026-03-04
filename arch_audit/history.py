@@ -19,10 +19,24 @@ class History:
         timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
         filename = self.history_dir / f"audit_{timestamp}.json"
 
+        # Convert Finding objects to dicts for JSON serialization
+        serializable_data = self._make_serializable(report_data)
+
         with open(filename, "w") as f:
-            json.dump(report_data, f, indent=2)
+            json.dump(serializable_data, f, indent=2, default=str)
 
         return str(filename)
+
+    @staticmethod
+    def _make_serializable(obj: Any) -> Any:
+        """Convert Finding objects to dicts for JSON serialization."""
+        if hasattr(obj, "to_dict"):
+            return obj.to_dict()
+        elif isinstance(obj, dict):
+            return {k: History._make_serializable(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [History._make_serializable(item) for item in obj]
+        return obj
 
     def get_latest(self) -> Optional[Dict[str, Any]]:
         """Get the latest audit report."""
