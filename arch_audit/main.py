@@ -5,6 +5,7 @@ import sys
 import os
 import glob
 import argparse
+from pathlib import Path
 from .collector import Collector
 from .analyzer import Analyzer
 from .report import Report
@@ -12,6 +13,7 @@ from .tui import ModernTUI
 from .config import Config
 from .history import History
 from .autofix import AutoFix
+from .export import Exporter
 
 
 def parse_args():
@@ -186,8 +188,12 @@ def main():
 
     if args.export:
         print(f"📤 Exporting as {args.export.upper()}...\n")
-        # TODO: Implement export formats
-        print(f"✅ Export functionality coming soon!\n")
+        os.makedirs("reports", exist_ok=True)
+        try:
+            filepath = Exporter.export_format(report_data, args.export, "reports")
+            print(f"✅ Exported: {Path(filepath).name}\n")
+        except Exception as e:
+            print(f"❌ Export failed: {e}\n")
         return
 
     if args.diff:
