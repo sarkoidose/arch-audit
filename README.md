@@ -1,10 +1,7 @@
 ```
 ╔════════════════════════════════════════════════════════════════╗
-║                   🔍 ARCH-AUDIT 🔍                             ║
+║                        ARCH-AUDIT                              ║
 ║           Professional System Audit Tool for Arch Linux        ║
-║                                                                ║
-║             Smart Detection • 8-Domain Analysis                ║
-║          Interactive Reports • Automated Cleanup               ║
 ╚════════════════════════════════════════════════════════════════╝
 ```
 
