@@ -74,34 +74,50 @@ When launched without arguments (`./run.sh`), displays interactive menu:
 ```
 arch_audit/
 ├── main.py           # Entry point: CLI + menu + orchestration
-├── menu.py           # Interactive command menu (NEW)
-├── config.py         # Configuration management (NEW)
-├── history.py        # Audit history & persistence (NEW)
-├── autofix.py        # Auto-fix interactive mode (NEW)
-├── export.py         # Export formats: CSV/MD/JSON (NEW)
+├── menu.py           # Interactive command menu
+├── config.py         # Configuration management
+├── history.py        # Audit history & persistence
+├── autofix.py        # Auto-fix interactive mode
+├── export.py         # Export formats: CSV/MD/JSON
 ├── collector.py      # System data collector (8 domains)
 ├── analyzer.py       # Audit engine (Finding dataclass + Analyzer)
 ├── report.py         # Report generation (JSON + HTML)
 ├── tui.py            # Interactive TUI with ModernTUI class
-├── arch_api.py       # Official Arch Linux API client
-└── utils.py          # (DEPRECATED - absorbed into collector.py)
+├── constants.py      # Global configuration values (v2.1)
+└── arch_api.py       # Official Arch Linux API client
 ```
 
-### New Features (v2.0)
+### Features (v2.1)
 
+**Core Features (v2.0):**
 - **menu.py**: Interactive command menu with TUI table display
 - **config.py**: Load/save configuration from `~/.config/arch-audit/config.yaml`
 - **history.py**: Persistent audit database in `~/.local/share/arch-audit/history/`
-  - Auto-cleanup: keeps only last 5 audits
-  - Compare audits (index 0 vs 1, etc.)
-  - Statistics and trend analysis
 - **autofix.py**: Interactive auto-fix with preview + confirmation
-  - Safe actions list from config
-  - Preview mode (show commands without executing)
-- **export.py**: Multi-format export
-  - CSV for spreadsheet analysis
-  - Markdown for documentation
-  - JSON for automation/scripting
+- **export.py**: Multi-format export (CSV, Markdown, JSON)
+
+**Security & Quality Improvements (v2.1):**
+- **constants.py**: Centralized configuration values
+  - All magic numbers in one place
+  - Thresholds, timeouts, limits defined globally
+  - Easy to customize and maintain
+- **Security Hardening**:
+  - Safe subprocess execution: `shlex.split()` instead of `shell=True`
+  - Path traversal protection: `validate_output_path()` in export.py
+  - Input validation for Finding objects
+  - Specific exception handling (not broad Exception catches)
+- **Performance**:
+  - Fixed N+1 problem in `_get_large_logs()` (1 cmd instead of 50+)
+  - Optimized command execution
+- **Logging**:
+  - Global logging setup in main.py (stderr + file)
+  - Error tracking in all modules
+  - Corrupted file handling with warnings
+  - Command failures logged with context
+- **Code Quality**:
+  - Python 3.8+ compatibility (type hints fixed)
+  - Recursion depth limits to prevent infinite loops
+  - Consistent error handling patterns
 
 ### Data Pipeline
 
@@ -208,12 +224,38 @@ actions:
 
 ## Development Notes
 
+### Design Principles
 - **Smart detection**: Only alerts on actionable issues (not raw size metrics)
 - **Finding model**: Dataclass with severity (critical/high/medium/low)
 - **Pure stdlib**: No external dependencies beyond standard library
-- **Timeouts**: All system calls have 15-second timeout with graceful fallbacks
-- **Error handling**: Corrupted history files skipped, not fatal
-- **Menu system**: Interactive TUI menu for command selection (MenuTUI class)
-- **CLI arguments**: Full argparse support for all commands
-- **Testing**: 15-test suite (`test.sh`) covering all major features
-- **Version control**: .gitignore properly configured (reports/ ignored)
+- **Reversible**: Every fix includes rollback instructions
+- **User control**: Interactive menus, no automatic execution without confirmation
+
+### Implementation Details
+- **Safe execution**: `shlex.split()` for all subprocess calls (prevents injection)
+- **Path security**: All file paths validated before write operations
+- **Timeouts**: All system calls have configurable timeouts
+  - Collector: 15 seconds per command
+  - Auto-fix: 300 seconds per fix operation
+- **Error handling**:
+  - Specific exception catching (OSError, ValueError, etc.)
+  - Corrupted files skipped gracefully
+  - All errors logged for debugging
+- **Configuration**: Centralized constants (constants.py)
+  - All thresholds configurable
+  - Magic numbers eliminated
+  - Easy to customize behavior
+- **Menu system**: Interactive TUI for command selection (MenuTUI class)
+- **CLI arguments**: Full argparse support for scripting
+- **Logging**: File + stderr logging for operational visibility
+- **Version**: v2.1 (security hardening, performance optimizations)
+
+### Constants (constants.py)
+All configurable values defined in one place:
+- Timeouts: COLLECTOR_COMMAND_TIMEOUT, AUTOFIX_COMMAND_TIMEOUT
+- Thresholds: Disk, memory, ports, cache, logs, etc.
+- Limits: Max files, max history, max displays
+- Paths: Standard Arch Linux paths (pacman cache, logs, tmp, etc.)
+- Recursion: MAX_CONFIG_NESTING_DEPTH (prevents infinite loops)
+
+When modifying behavior, check constants.py first.
