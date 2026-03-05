@@ -1,8 +1,18 @@
-# arch-audit
+```
+ _____ ____  ____ _   _   ___   _   _ _____ ___ _____
+|_   _|  _ \/ ___| | | | / _ \ | | | |_   _|_ _|_   _|
+  | | | |_) \___ \ |_| || | | || | | | | |  | |  | |
+  | | |  _ < ___) |  _  || |_| || |_| | | |  | |  | |
+  |_| |_| \_\____/|_| |_| \__\_\ \___/  |_| |___|  |_|
 
-Professional system audit tool for Arch Linux. Analyzes system health across 8 domains and identifies actionable issues with exact solutions.
+Professional system audit tool for Arch Linux
+```
 
-**Status:** Python 3.8+ | MIT License | Arch Linux
+[![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-blue)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+[![Arch Linux](https://img.shields.io/badge/Target-Arch%20Linux-1793D1)](https://archlinux.org)
+
+Analyzes system health across 8 domains and identifies actionable issues with exact solutions.
 
 ---
 
