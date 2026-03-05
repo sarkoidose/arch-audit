@@ -5,6 +5,7 @@ import sys
 import os
 import glob
 import argparse
+import logging
 from pathlib import Path
 from .collector import Collector
 from .analyzer import Analyzer
@@ -15,6 +16,17 @@ from .history import History
 from .autofix import AutoFix
 from .export import Exporter
 from .menu import MenuTUI
+
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(Path.home() / ".local" / "share" / "arch-audit" / "audit.log"),
+        logging.StreamHandler(sys.stderr),
+    ]
+)
+logger = logging.getLogger(__name__)
 
 
 def parse_args():
@@ -265,9 +277,11 @@ if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
+        logger.info("Program interrupted by user")
         print("\n\nInterrupted by user.\n")
         sys.exit(0)
     except Exception as e:
+        logger.error(f"Fatal error: {e}", exc_info=True)
         print(f"\n❌ Error: {e}\n")
         import traceback
 

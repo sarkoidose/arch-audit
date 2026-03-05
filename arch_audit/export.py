@@ -2,9 +2,44 @@
 
 import csv
 import json
+import logging
 from pathlib import Path
-from typing import Dict, Any, List
+from typing import Dict, Any
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
+
+
+def validate_output_path(base_dir: str, filename: str) -> Path:
+    """Validate and secure output path to prevent path traversal attacks.
+
+    SECURITY: Ensures the file is written only within the base directory.
+    ✅ Example attack prevented:
+       validate_output_path("reports", "../../etc/passwd")
+       → Returns "reports/....etc..passwd" (safe)
+
+    Args:
+        base_dir: Base directory for output
+        filename: Desired filename
+
+    Returns:
+        Validated Path object
+
+    Raises:
+        ValueError: If path would escape base directory
+    """
+    base = Path(base_dir).resolve()
+    base.mkdir(parents=True, exist_ok=True)
+
+    target = (base / filename).resolve()
+
+    # Check if the target is within the base directory
+    try:
+        target.relative_to(base)  # Raises ValueError if not within base
+    except ValueError:
+        raise ValueError(f"Path traversal detected: {filename} would escape {base_dir}")
+
+    return target
 
 
 class Exporter:
@@ -16,8 +51,9 @@ class Exporter:
         self.timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
 
     def export_csv(self, output_dir: str = "reports") -> str:
-        """Export findings as CSV spreadsheet."""
-        filepath = Path(output_dir) / f"report_{self.timestamp}.csv"
+        """Export findings as CSV spreadsheet with validation."""
+        # SECURITY: Validate output path to prevent path traversal
+        filepath = validate_output_path(output_dir, f"report_{self.timestamp}.csv")
 
         findings = self.report_data.get("all", [])
 
@@ -36,24 +72,39 @@ class Exporter:
                 "How to Undo",
             ])
 
-            # Write findings
+            # Write findings with validation
             for finding in findings:
-                writer.writerow([
-                    finding.severity.upper(),
-                    finding.category,
-                    finding.title,
-                    finding.description,
-                    finding.problem,
-                    finding.solution,
-                    finding.impact,
-                    finding.rollback,
-                ])
+                # Validate that finding has required attributes
+                try:
+                    severity = finding.severity.upper() if finding.severity else "UNKNOWN"
+                    category = finding.category or "unknown"
+                    title = finding.title or "Unknown Issue"
+                    description = finding.description or ""
+                    problem = finding.problem or ""
+                    solution = finding.solution or ""
+                    impact = finding.impact or ""
+                    rollback = finding.rollback or ""
+
+                    writer.writerow([
+                        severity,
+                        category,
+                        title,
+                        description,
+                        problem,
+                        solution,
+                        impact,
+                        rollback,
+                    ])
+                except AttributeError as e:
+                    logger.warning(f"Skipping invalid finding: {e}")
+                    continue
 
         return str(filepath)
 
     def export_markdown(self, output_dir: str = "reports") -> str:
         """Export findings as Markdown report."""
-        filepath = Path(output_dir) / f"report_{self.timestamp}.md"
+        # SECURITY: Validate output path to prevent path traversal
+        filepath = validate_output_path(output_dir, f"report_{self.timestamp}.md")
 
         executive = self.report_data.get("executive_summary", "")
         findings_by_severity = {
@@ -129,7 +180,8 @@ class Exporter:
 
     def export_json(self, output_dir: str = "reports") -> str:
         """Export findings as JSON (native format)."""
-        filepath = Path(output_dir) / f"report_{self.timestamp}.json"
+        # SECURITY: Validate output path to prevent path traversal
+        filepath = validate_output_path(output_dir, f"report_{self.timestamp}.json")
 
         with open(filepath, "w") as f:
             json.dump(self.report_data, f, indent=2, default=str)

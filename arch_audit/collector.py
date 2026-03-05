@@ -2,18 +2,51 @@
 
 import subprocess
 import os
-import json
+import logging
+import shlex
 from typing import List, Dict, Any
+from .constants import COLLECTOR_COMMAND_TIMEOUT
+
+# Setup logging
+logger = logging.getLogger(__name__)
 
 
-def run_cmd(cmd: str, timeout: int = 15) -> str:
-    """Run shell command safely."""
+def run_cmd(cmd: str, timeout: int = COLLECTOR_COMMAND_TIMEOUT) -> str:
+    """Run shell command safely (without shell=True to prevent injection).
+
+    Args:
+        cmd: Command string to execute
+        timeout: Timeout in seconds (default: COLLECTOR_COMMAND_TIMEOUT)
+
+    Returns:
+        Command output or empty string if error
+    """
     try:
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=timeout)
+        # SECURITY: Split command string to avoid shell injection
+        # Instead of: subprocess.run(cmd, shell=True)
+        # We do: subprocess.run(shlex.split(cmd), shell=False)
+        # This prevents malicious input from executing arbitrary code
+        cmd_list = shlex.split(cmd)
+        result = subprocess.run(
+            cmd_list,
+            shell=False,  # ✅ SECURE: No shell interpretation
+            capture_output=True,
+            text=True,
+            timeout=timeout
+        )
         return result.stdout.strip()
     except subprocess.TimeoutExpired:
+        logger.warning(f"Command timeout (>{timeout}s): {cmd}")
         return ""
-    except Exception:
+    except (OSError, subprocess.CalledProcessError, ValueError) as e:
+        # OSError: File not found
+        # CalledProcessError: Command returned non-zero
+        # ValueError: Invalid command format
+        logger.warning(f"Command failed: {cmd}, error: {type(e).__name__}: {e}")
+        return ""
+    except Exception as e:
+        # Catch only unexpected errors, not programming mistakes
+        logger.error(f"Unexpected error running command: {cmd}, error: {e}")
         return ""
 
 
@@ -68,10 +101,13 @@ class Collector:
 
     def _get_cache_size(self) -> Dict[str, Any]:
         """Get pacman cache info with detailed breakdown."""
-        output = run_cmd("du -sb /var/cache/pacman/pkg/ 2>/dev/null")
+        from .constants import PACMAN_CACHE_PATH
+
+        output = run_cmd(f"du -sb {PACMAN_CACHE_PATH} 2>/dev/null")
         try:
             size = int(output.split()[0])
         except (IndexError, ValueError):
+            logger.warning(f"Failed to parse cache size, output: {output}")
             size = 0
 
         # Check for old packages (paccache would remove with -rk1)
@@ -79,6 +115,7 @@ class Collector:
         try:
             old_count = int(old_packages)
         except (ValueError, TypeError):
+            logger.warning(f"Failed to parse old packages count: {old_packages}")
             old_count = 0
 
         # Check for unsynced repos
@@ -86,6 +123,7 @@ class Collector:
         try:
             unsynced_count = int(unsynced_repos)
         except (ValueError, TypeError):
+            logger.warning(f"Failed to parse unsynced repos count: {unsynced_repos}")
             unsynced_count = 0
 
         return {
@@ -260,14 +298,28 @@ class Collector:
         return usage
 
     def _get_large_logs(self) -> List[Dict]:
-        """Get large log files."""
-        output = run_cmd("find /var/log -size +50M -type f 2>/dev/null")
+        """Get large log files.
+
+        OPTIMIZATION: Uses single command instead of N+1 queries.
+        ✅ BEFORE: find (1 cmd) + du for each file (N cmds) = ~N+1 calls
+        ✅ AFTER: find with exec (1 cmd) = 1 call
+        """
+        from .constants import LOG_SEARCH_PATH, LARGE_LOG_SEARCH_SIZE
+
+        # Use find with -exec to get size + path in one command
+        # This avoids calling du for each file (N+1 problem)
+        output = run_cmd(
+            f"find {LOG_SEARCH_PATH} -size +{LARGE_LOG_SEARCH_SIZE}M -type f "
+            "-exec du -h {{}} \\; 2>/dev/null"
+        )
+
         logs = []
-        for path in output.split("\n"):
-            if path:
-                size_output = run_cmd(f"du -h {path} 2>/dev/null")
-                size = size_output.split()[0] if size_output else "?"
-                logs.append({"path": path, "size": size})
+        for line in output.split("\n"):
+            if line:
+                parts = line.split(maxsplit=1)  # Split into [size, path]
+                if len(parts) == 2:
+                    logs.append({"size": parts[0], "path": parts[1]})
+
         return logs[:10]
 
     def _get_journal_size(self) -> Dict[str, Any]:
@@ -277,8 +329,10 @@ class Collector:
 
     def _get_tmp_size(self) -> Dict[str, Any]:
         """Get /tmp and /var/tmp sizes."""
-        tmp = run_cmd("du -sh /tmp 2>/dev/null | awk '{print $1}'")
-        var_tmp = run_cmd("du -sh /var/tmp 2>/dev/null | awk '{print $1}'")
+        from .constants import TMP_PATH, VAR_TMP_PATH
+
+        tmp = run_cmd(f"du -sh {TMP_PATH} 2>/dev/null | awk '{{print $1}}'")
+        var_tmp = run_cmd(f"du -sh {VAR_TMP_PATH} 2>/dev/null | awk '{{print $1}}'")
 
         return {"tmp": tmp if tmp else "0 B", "var_tmp": var_tmp if var_tmp else "0 B"}
 

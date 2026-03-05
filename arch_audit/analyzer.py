@@ -1,8 +1,28 @@
 """Professional audit analyzer - 8 domains with severity levels."""
 
+import logging
 from typing import List, Dict, Any
 from dataclasses import dataclass
 from .collector import Collector
+from .constants import (
+    OLD_PACKAGES_THRESHOLD,
+    OLD_PACKAGES_THRESHOLD_MEDIUM,
+    CACHE_VERY_LARGE_SIZE_BYTES,
+    AUR_PACKAGES_THRESHOLD,
+    OPEN_PORTS_THRESHOLD,
+    SUID_FILES_THRESHOLD,
+    SHELL_USERS_THRESHOLD,
+    DISK_USAGE_HIGH_PERCENT,
+    DISK_USAGE_CRITICAL_PERCENT,
+    LARGE_LOG_SEARCH_SIZE,
+    MEMORY_CRITICAL_PERCENT,
+    MEMORY_USAGE_THRESHOLD_PERCENT,
+    SERVICE_ERRORS_THRESHOLD,
+    ERROR_MESSAGES_THRESHOLD,
+    WARNING_MESSAGES_THRESHOLD,
+)
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -116,7 +136,8 @@ class Analyzer:
 
         # Only show alert if there are actually old packages to remove
         if old_packages > 0:
-            severity = "high" if old_packages > 50 else "medium"
+            # Use threshold from constants instead of hardcoded 50
+            severity = "high" if old_packages > OLD_PACKAGES_THRESHOLD else "medium"
             self.findings.append(
                 Finding(
                     name="old_cached_packages",
@@ -131,7 +152,7 @@ class Analyzer:
                     evidence=f"Found {old_packages} removable old package versions",
                 )
             )
-        elif cache_bytes > 500_000_000:  # Only warn if no old packages but cache is very large (>500MB)
+        elif cache_bytes > CACHE_VERY_LARGE_SIZE_BYTES:  # Only warn if no old packages but cache is very large
             self.findings.append(
                 Finding(
                     name="large_active_cache",
@@ -149,7 +170,7 @@ class Analyzer:
 
         # AUR packages
         aur_packages = pkg_data.get("aur_packages", [])
-        if len(aur_packages) > 10:
+        if len(aur_packages) > AUR_PACKAGES_THRESHOLD:
             self.findings.append(
                 Finding(
                     name="many_aur_packages",
@@ -211,7 +232,7 @@ class Analyzer:
 
         # Service errors
         errors = svc_data.get("service_errors", [])
-        if len(errors) > 5:
+        if len(errors) > SERVICE_ERRORS_THRESHOLD:
             self.findings.append(
                 Finding(
                     name="service_errors",
@@ -235,7 +256,7 @@ class Analyzer:
 
         # Open ports
         ports = sec_data.get("open_ports", [])
-        if len(ports) > 5:
+        if len(ports) > OPEN_PORTS_THRESHOLD:
             self.findings.append(
                 Finding(
                     name="many_open_ports",
@@ -274,7 +295,7 @@ class Analyzer:
 
         # SUID files
         suid = sec_data.get("suid_files", [])
-        if len(suid) > 50:
+        if len(suid) > SUID_FILES_THRESHOLD:
             self.findings.append(
                 Finding(
                     name="many_suid_files",
@@ -293,7 +314,7 @@ class Analyzer:
         # Users with shell
         users = sec_data.get("users_with_shell", [])
         user_count = len(users)
-        if user_count > 5:
+        if user_count > SHELL_USERS_THRESHOLD:
             self.findings.append(
                 Finding(
                     name="many_shell_users",
@@ -321,7 +342,7 @@ class Analyzer:
             percent = mount.get("percent", 0)
             mount_point = mount.get("mount", "?")
 
-            if percent >= 95:
+            if percent >= DISK_USAGE_CRITICAL_PERCENT:
                 self.findings.append(
                     Finding(
                         name=f"disk_critical_{mount_point.replace('/', '_')}",
@@ -336,7 +357,7 @@ class Analyzer:
                         evidence=f"{mount_point}: {mount.get('used', '?')} used, {mount.get('available', '?')} available",
                     )
                 )
-            elif percent >= 85:
+            elif percent >= DISK_USAGE_HIGH_PERCENT:
                 self.findings.append(
                     Finding(
                         name=f"disk_high_{mount_point.replace('/', '_')}",
@@ -381,7 +402,7 @@ class Analyzer:
         mem = perf_data.get("memory", {})
         mem_percent = mem.get("percent", 0)
 
-        if mem_percent > 90:
+        if mem_percent > MEMORY_CRITICAL_PERCENT:
             self.findings.append(
                 Finding(
                     name="high_memory_usage",
@@ -396,7 +417,7 @@ class Analyzer:
                     evidence=f"{mem_percent}% memory used",
                 )
             )
-        elif mem_percent > 75:
+        elif mem_percent > MEMORY_USAGE_THRESHOLD_PERCENT:
             self.findings.append(
                 Finding(
                     name="moderate_memory_usage",
@@ -458,7 +479,7 @@ class Analyzer:
 
         # Error messages
         errors = logs_data.get("error_messages", [])
-        if len(errors) > 20:
+        if len(errors) > ERROR_MESSAGES_THRESHOLD:
             self.findings.append(
                 Finding(
                     name="many_errors_in_logs",
@@ -476,7 +497,7 @@ class Analyzer:
 
         # Warnings
         warnings = logs_data.get("warnings", [])
-        if len(warnings) > 30:
+        if len(warnings) > WARNING_MESSAGES_THRESHOLD:
             self.findings.append(
                 Finding(
                     name="many_warnings_in_logs",

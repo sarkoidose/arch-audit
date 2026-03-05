@@ -1,9 +1,12 @@
 """Configuration management for arch-audit."""
 
-import os
 import yaml
+import logging
 from pathlib import Path
 from typing import Dict, Any, List
+from .constants import MAX_CONFIG_NESTING_DEPTH
+
+logger = logging.getLogger(__name__)
 
 
 class Config:
@@ -63,12 +66,32 @@ class Config:
         return self.DEFAULT_CONFIG
 
     @staticmethod
-    def _merge_configs(defaults: Dict, user: Dict) -> Dict:
-        """Deep merge user config with defaults."""
+    def _merge_configs(defaults: Dict, user: Dict, depth: int = 0) -> Dict:
+        """Deep merge user config with defaults.
+
+        ROBUSTNESS: Prevents infinite recursion with circular config references.
+
+        Args:
+            defaults: Default configuration dict
+            user: User configuration dict to merge
+            depth: Current recursion depth (internal use)
+
+        Returns:
+            Merged configuration
+
+        Raises:
+            ValueError: If config nesting is too deep (circular reference)
+        """
+        # Prevent infinite recursion if config has circular references
+        if depth > MAX_CONFIG_NESTING_DEPTH:
+            logger.error(f"Config nesting too deep (>{MAX_CONFIG_NESTING_DEPTH}), possible circular reference")
+            raise ValueError(f"Config nesting exceeds maximum depth of {MAX_CONFIG_NESTING_DEPTH}")
+
         merged = defaults.copy()
         for key, value in user.items():
             if isinstance(value, dict) and key in merged:
-                merged[key] = Config._merge_configs(merged[key], value)
+                # Recurse with incremented depth
+                merged[key] = Config._merge_configs(merged[key], value, depth + 1)
             else:
                 merged[key] = value
         return merged

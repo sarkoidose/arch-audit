@@ -1,9 +1,12 @@
 """Audit history management - store and compare past audits."""
 
 import json
+import logging
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, Any, List, Optional
+
+logger = logging.getLogger(__name__)
 
 
 class History:
@@ -49,6 +52,7 @@ class History:
                 with open(report_file) as f:
                     return json.load(f)
             except json.JSONDecodeError:
+                logger.warning(f"Corrupted JSON file skipped: {report_file}")
                 continue
         return None
 
@@ -87,6 +91,7 @@ class History:
                 })
             except json.JSONDecodeError:
                 # Skip corrupted JSON files
+                logger.warning(f"Corrupted JSON file skipped in list_reports: {report_file}")
                 continue
 
         return result
@@ -153,6 +158,7 @@ class History:
                     })
             except json.JSONDecodeError:
                 # Skip corrupted files
+                logger.warning(f"Corrupted JSON file skipped in get_stats: {report_file}")
                 continue
 
         return stats

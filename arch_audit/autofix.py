@@ -1,9 +1,14 @@
 """Auto-fix mode - interactively fix identified issues."""
 
 import subprocess
-from typing import List, Dict, Any
+import logging
+import shlex
+from typing import List, Dict, Any, Tuple
 from .analyzer import Finding
 from .config import Config
+from .constants import AUTOFIX_COMMAND_TIMEOUT
+
+logger = logging.getLogger(__name__)
 
 
 class AutoFix:
@@ -84,7 +89,7 @@ class AutoFix:
 
     def _get_fixable_findings(
         self, findings: List[Finding]
-    ) -> List[tuple[Finding, Dict[str, Any]]]:
+    ) -> List[Tuple[Finding, Dict[str, Any]]]:
         """Get findings that have auto-fix solutions."""
         fixable = []
         safe_actions = self.config.data.get("actions", {}).get("safe", [])
@@ -145,11 +150,23 @@ class AutoFix:
             print("\nCancelled.\n")
 
     def _execute_fix(self, issue_id: str, fix_info: Dict[str, Any]) -> None:
-        """Execute a single fix command."""
+        """Execute a single fix command.
+
+        SECURITY: Uses shlex.split() to prevent shell injection attacks.
+        ✅ BEFORE: subprocess.run(cmd, shell=True) = vulnerable to injection
+        ✅ AFTER: subprocess.run(shlex.split(cmd), shell=False) = safe
+        """
         try:
             print(f"Executing: {fix_info['description']}...")
+            # SECURITY: Parse command safely to avoid shell injection
+            cmd_list = shlex.split(fix_info["command"])
+
             result = subprocess.run(
-                fix_info["command"], shell=True, capture_output=True, text=True, timeout=300
+                cmd_list,
+                shell=False,  # ✅ SECURE: No shell interpretation
+                capture_output=True,
+                text=True,
+                timeout=AUTOFIX_COMMAND_TIMEOUT
             )
 
             if result.returncode == 0:
@@ -159,9 +176,17 @@ class AutoFix:
                 print(f"  ❌ Failed: {result.stderr[:100]}\n")
                 self.skipped.append(issue_id)
         except subprocess.TimeoutExpired:
+            logger.warning(f"Fix timeout for {issue_id}: {fix_info['description']}")
             print(f"  ⏱️ Timeout\n")
             self.skipped.append(issue_id)
+        except (OSError, ValueError) as e:
+            # OSError: Command not found
+            # ValueError: Invalid command format
+            logger.error(f"Failed to execute fix {issue_id}: {e}")
+            print(f"  ❌ Error: {str(e)}\n")
+            self.skipped.append(issue_id)
         except Exception as e:
+            logger.error(f"Unexpected error executing fix {issue_id}: {e}")
             print(f"  ❌ Error: {str(e)}\n")
             self.skipped.append(issue_id)
 
