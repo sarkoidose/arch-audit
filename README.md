@@ -1,82 +1,60 @@
-```
-╔════════════════════════════════════════════════════════════════╗
-║                        ARCH-AUDIT                              ║
-║           Professional System Audit Tool for Arch Linux        ║
-╚════════════════════════════════════════════════════════════════╝
-```
+# arch-audit
 
-<div align="center">
+Professional system audit tool for Arch Linux. Analyzes system health across 8 domains and identifies actionable issues with exact solutions.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue)](https://www.python.org/downloads/)
-[![Arch Linux](https://img.shields.io/badge/Target-Arch%20Linux-1793D1?logo=archlinux)](https://archlinux.org)
-
-**Smart system auditor that identifies real cleanup candidates, not false positives**
-
-[Features](#-features) • [Installation](#-installation) • [Usage](#-usage) • [Examples](#-examples) • [Architecture](#-architecture)
-
-</div>
+**Status:** Python 3.8+ | MIT License | Arch Linux
 
 ---
 
-## 🎯 Overview
+## Overview
 
-`arch-audit` is a **professional, intelligent system auditor** for Arch Linux. It audits 8 critical domains and identifies what can be safely optimized — without the noise of naive size-based checks.
+arch-audit audits your Arch Linux system to identify real problems—not false positives. It distinguishes between:
 
-**Key Insight:** Bigger ≠ Worse. arch-audit analyzes:
-- **What's really old** (not just large)
-- **What's actually orphaned** (not used)
-- **What's truly problematic** (actionable)
+- **Large cache** vs **old packages to clean**
+- **All packages** vs **orphaned dependencies**
+- **System activity** vs **genuine errors**
 
----
-
-## ✨ Features
-
-### 📊 **8 Audit Domains**
-- **Packages**: orphans, old cache versions, AUR packages, updates, broken deps
-- **Services**: failed, disabled, error states
-- **Security**: open ports, firewall, SUID files, shell users
-- **Disk**: usage per mount, large logs, journal size, /tmp
-- **Performance**: memory, swap, top processes, load average
-- **Logs**: critical errors, error messages, warnings
-- **Boot/Kernel**: version, boot time, dmesg errors, failed units
-- **Config**: configs, system info (hostname, uptime, arch)
-
-### 🧠 **Smart Detection**
-- Identifies **real cleanup candidates** (orphans, old packages, logs)
-- Ignores **false positives** (current packages in cache)
-- **Actionable findings** with exact commands
-- **Impact assessment** for each issue
-- **Customizable thresholds** via config file
-
-### 🔧 **Full-Featured CLI**
-- **Interactive mode** with TUI browser
-- **Auto-fix mode** for safe issues
-- **Export formats**: CSV, Markdown, JSON
-- **History tracking** with comparisons
-- **Configuration system** for customization
-- **Trend analysis** across audits
-
-### 📈 **Report Generation**
-- Beautiful **HTML reports** (browser-friendly)
-- **CSV exports** (spreadsheet analysis)
-- **Markdown reports** (documentation)
-- **JSON exports** (automation & scripting)
-
-### 📊 **History & Trends**
-- Persistent audit history database
-- Compare audits over time
-- Track improvements/regressions
-- Trend statistics (cache growth, errors, etc.)
+Each finding includes the exact command to fix it, impact assessment, and how to undo changes.
 
 ---
 
-## 🚀 Installation
+## Features
+
+### Audit Domains
+
+- **Packages**: Orphaned packages, old cache versions, AUR packages, pending updates, broken dependencies
+- **Services**: Failed services, disabled services, recent service errors
+- **Security**: Open ports, firewall status, SUID files, users with shell access
+- **Disk**: Disk usage per mount point, large log files, journal size, /tmp usage
+- **Performance**: Memory usage, swap configuration, top processes, load average
+- **Logs**: Critical errors, error messages, warnings from past 24 hours
+- **Boot/Kernel**: Kernel version, boot time, kernel errors, failed systemd units
+- **Configuration**: Important config file status, system info (hostname, uptime, architecture)
+
+### Capabilities
+
+- Intelligent detection: Only alerts on actionable issues
+- Customizable thresholds via configuration file
+- Interactive CLI with TUI navigation
+- Auto-fix mode for safe operations (preview before executing)
+- Export to CSV, Markdown, JSON formats
+- Audit history with comparison and trend analysis
+- Persistent database of past audits
+
+### Reports
+
+- HTML reports (browser-viewable)
+- CSV exports (spreadsheet analysis)
+- Markdown reports (documentation)
+- JSON exports (automation/scripting)
+
+---
+
+## Installation
 
 ### Quick Start
 
 ```bash
-# Clone into your GitHub directory
 cd ~/GitHub/configs
 git clone https://github.com/sarkoidose/arch-audit.git
 cd arch-audit
@@ -84,339 +62,227 @@ cd arch-audit
 
 ### Requirements
 
-- **Arch Linux** (with pacman)
-- **Python 3.10+**
-- Standard tools: `pacman`, `systemctl`, `journalctl`, etc.
+- Arch Linux (with pacman)
+- Python 3.8 or later
+- Standard tools: pacman, systemctl, journalctl (included with Arch)
 
 ---
 
-## 📖 Usage
+## Usage
 
 ### Basic Commands
 
+Run interactive audit:
 ```bash
-# Run interactive audit with TUI
 ./run.sh
+```
 
-# Show help
+Show all options:
+```bash
 ./run.sh --help
 ```
 
 ### Configuration
 
+Create default configuration:
 ```bash
-# Show current configuration
-./run.sh --config
-
-# Create default config file
 ./run.sh --create-config
 ```
 
-Then edit: `~/.config/arch-audit/config.yaml`
+This creates `~/.config/arch-audit/config.yaml` with customizable thresholds:
 
 ```yaml
 audit:
   domains:
     - packages
     - services
-    # Skip any domains you want to ignore
-  skip: []
+    - security
+    - disk
+    - performance
+    - logs
+    - boot
+    - config
+  skip: []  # List domains to skip
 
 thresholds:
-  cache_size_mb: 100        # Alert if cache > 100MB
-  open_ports_max: 5         # Alert if > 5 ports open
-  memory_percent: 75        # Alert if RAM > 75%
+  cache_size_mb: 100
+  open_ports_max: 5
+  memory_percent: 75
+  disk_percent: 85
 
 actions:
-  safe:                     # Safe to auto-fix
+  safe:              # Will be run by --auto-fix
     - orphan_packages
     - old_cached_packages
     - large_log_files
 ```
 
+View current configuration:
+```bash
+./run.sh --config
+```
+
 ### Auto-Fix Mode
 
+Preview what would be fixed without executing:
 ```bash
-# Interactive auto-fix menu
-./run.sh --auto-fix
-
-# Preview commands before executing
 ./run.sh --preview
 ```
 
-**Features:**
-- Review all fixable issues
-- Pick which ones to fix
-- See exact commands before running
-- Automatic rollback info
+Interactive mode to select and fix issues:
+```bash
+./run.sh --auto-fix
+```
 
 ### Export Reports
 
+Export latest audit in different formats:
 ```bash
-# Export as CSV (spreadsheet)
-./run.sh --export csv
-
-# Export as Markdown (documentation)
-./run.sh --export md
-
-# Export as JSON (scripting/automation)
-./run.sh --export json
+./run.sh --export csv       # Spreadsheet format
+./run.sh --export md        # Markdown documentation
+./run.sh --export json      # JSON for scripting
 ```
 
-### History & Comparisons
+### History and Comparisons
 
+List recent audits:
 ```bash
-# List recent audits
 ./run.sh --history
+```
 
-# Compare current audit with previous
+Compare current audit with previous one:
+```bash
 ./run.sh --diff
+```
 
-# Show statistics and trends
+Show trends across audit history:
+```bash
 ./run.sh --stats
 ```
 
-**History Storage:** `~/.local/share/arch-audit/history/`
+Audits are stored in `~/.local/share/arch-audit/history/`
 
 ---
 
-## 🎓 Examples
+## How It Works
 
-### Example 1: Routine Audit
+### Data Collection
 
-```bash
-# Run full audit
-$ ./run.sh
+The collector runs standard Arch Linux commands (pacman, systemctl, journalctl) to gather system data across 8 domains. Each command has a 15-second timeout to prevent hangs.
 
-# In TUI:
-# [1] View CRITICAL issues
-# [2] View HIGH issues
-# [5] Open HTML report in browser
-# [q] Quit
-```
+### Analysis
 
-### Example 2: Auto-Fix Workflow
+The analyzer evaluates metrics against intelligent thresholds:
+- Identifies real cleanup candidates (old packages, orphans)
+- Ignores false positives (current packages in cache)
+- Generates findings with severity levels (critical, high, medium, low)
 
-```bash
-# Preview what would be fixed
-$ ./run.sh --preview
+### Configuration
 
-# See output:
-# 📋 Fixable Issues (Preview Mode)
-# 1. 4 orphan packages
-#    Command: sudo pacman -Rns $(pacman -Qdtq)
-# 2. 1 old package versions in cache
-#    Command: sudo paccache -rk1
-# 3. 4 large log files
-#    Command: sudo journalctl --vacuum=30d
+User can customize audit domains, thresholds, and safe actions via config file. Defaults are reasonable for most systems.
 
-# Execute fixes interactively
-$ ./run.sh --auto-fix
+### History
 
-# Menu:
-# [a] Fix all safe issues
-# [p] Preview commands
-# [s] Select specific issues
-# [q] Cancel
-```
+Past audits are saved to a persistent database. Compare reports to track improvements or regressions over time.
 
-### Example 3: Export for Analysis
+### Auto-Fix
 
-```bash
-# Export as CSV for spreadsheet analysis
-$ ./run.sh --export csv
-✅ CSV: report_2026-03-04_195436.csv
+Safe fixes can be selected and previewed before execution. Each fix includes rollback instructions.
 
-# Open in your favorite tool
-$ libreoffice report_*.csv
+### Export
 
-# Or export as Markdown for documentation
-$ ./run.sh --export md
-✅ Markdown: report_2026-03-04_195436.md
-```
-
-### Example 4: Track Improvements
-
-```bash
-# Run first audit
-$ ./run.sh
-[TUI opens]
-
-# Run second audit (after fixes)
-$ ./run.sh
-
-# Compare results
-$ ./run.sh --diff
-
-# Output:
-# 📊 Audit Comparison
-# Report 1: 2026-03-04_194656
-# Report 2: 2026-03-04_195436
-#
-# Changes:
-#   CRITICAL:  ↓ -1
-#   HIGH:      → 0
-#   MEDIUM:    ↓ -2
-#   LOW:       → 0
-
-# View full trends
-$ ./run.sh --stats
-
-# Output:
-# 📊 Audit History Statistics
-# Total audits: 5
-# Date range: 2026-03-04_194342 to 2026-03-04_195436
-#
-# Trends (last 5 audits):
-#   CRITICAL: 2 → 1 → 1 → 1 → 0
-#   HIGH:     4 → 4 → 2 → 2 → 2
-#   MEDIUM:   6 → 6 → 4 → 4 → 3
-#   LOW:      3 → 3 → 3 → 3 → 3
-```
+Reports can be generated in multiple formats for analysis, documentation, or automation.
 
 ---
 
-## 🔧 How It Works
-
-### 1. **Collection Phase** (`collector.py`)
-- Runs standard Arch Linux commands (`pacman`, `systemctl`, `journalctl`)
-- Gathers data across 8 domains
-- Parses output for analysis
-
-### 2. **Analysis Phase** (`analyzer.py`)
-- Evaluates metrics against **intelligent thresholds**
-- Key insight: Only alerts on **actionable issues**
-  - Old packages ≠ large cache
-  - Orphans ≠ all packages
-  - Recent errors ≠ noise
-
-### 3. **Configuration Phase** (`config.py`)
-- Load custom settings from `~/.config/arch-audit/config.yaml`
-- Customize thresholds, skip domains, define "safe" actions
-- Fallback to sensible defaults
-
-### 4. **History Phase** (`history.py`)
-- Store reports in `~/.local/share/arch-audit/history/`
-- Compare audits over time
-- Track trends and improvements
-
-### 5. **Auto-Fix Phase** (`autofix.py`)
-- Interactive menu for fixing issues
-- Preview mode (show commands, don't execute)
-- Mark actions as "safe" vs "risky"
-
-### 6. **Export Phase** (`export.py`)
-- Generate CSV, Markdown, JSON reports
-- Compatible with spreadsheets and documentation tools
-
-### 7. **Reporting Phase** (`report.py`)
-- Create professional HTML reports
-- Interactive browser viewer
-- Full finding details with solutions
-
----
-
-## 📁 Project Structure
+## Project Structure
 
 ```
 arch-audit/
-├── arch_audit/              # Python source code
-│   ├── collector.py         # System data collection
-│   ├── analyzer.py          # Finding analysis & severity
-│   ├── config.py            # Configuration management
-│   ├── history.py           # Audit history & comparisons
-│   ├── autofix.py           # Interactive auto-fix mode
-│   ├── export.py            # Export formats (CSV, MD, JSON)
-│   ├── report.py            # HTML report generation
-│   ├── tui.py               # Interactive terminal UI
-│   └── main.py              # CLI & orchestration
-├── reports/                 # Generated reports (gitignored)
-├── run.sh                   # Main launcher
-├── cleanup.sh               # Old report cleanup
-├── CLAUDE.md                # Claude Code instructions
-└── README.md                # This file
+├── arch_audit/
+│   ├── main.py          CLI entry point and orchestration
+│   ├── collector.py     System data collection
+│   ├── analyzer.py      Finding analysis and severity
+│   ├── config.py        Configuration management
+│   ├── history.py       Audit history and comparisons
+│   ├── autofix.py       Interactive auto-fix mode
+│   ├── export.py        Export to CSV, Markdown, JSON
+│   ├── report.py        HTML report generation
+│   ├── tui.py           Terminal user interface
+│   ├── constants.py     Global configuration values
+│   └── arch_api.py      Arch Linux API integration
+├── run.sh               Main launcher script
+├── cleanup.sh           Cleanup old reports
+├── CLAUDE.md            Development notes
+└── README.md            This file
 ```
 
 ---
 
-## 🎓 Design Principles
+## Commands Reference
 
-- **Smart over Simple**: Analyze, don't just measure
-- **Actionable over Alarming**: Real problems, not false positives
-- **Clear over Clever**: Easy to understand findings
-- **Reversible over Risky**: Always show how to undo
-- **Manual over Automatic**: User controls execution
-- **Customizable over Opinionated**: Configure your thresholds
+| Command | Purpose |
+|---------|---------|
+| `./run.sh` | Run audit with interactive menu |
+| `./run.sh --auto-fix` | Interactive fix mode with confirmation |
+| `./run.sh --preview` | Show fixes without executing them |
+| `./run.sh --export csv\|md\|json` | Export latest report |
+| `./run.sh --diff` | Compare current with previous audit |
+| `./run.sh --stats` | Show trends across audit history |
+| `./run.sh --history` | List recent audits |
+| `./run.sh --config` | Show current configuration |
+| `./run.sh --create-config` | Create default config file |
 
 ---
 
-## 📊 Sample Report Output
+## Sample Output
 
 ```
 System Audit Report - 10 findings
 
-  🔴 CRITICAL:  1 issue(s) - require immediate action
-  🟠 HIGH:      2 issue(s) - address soon
-  🟡 MEDIUM:    4 issue(s) - plan resolution
-  🟢 LOW:       3 issue(s) - monitor
-
-Critical Issues:
-  • 20 critical log entries
-```
+  CRITICAL:  1 issue(s)
+  HIGH:      2 issue(s)
+  MEDIUM:    4 issue(s)
+  LOW:       3 issue(s)
 
 Each finding includes:
-- **Description**: What this is
-- **Problem**: Why it matters
-- **Solution**: Exact command to fix
-- **Impact**: What happens if ignored
-- **Undo**: How to revert changes
+  - Description of the issue
+  - Why it matters
+  - Exact command to fix it
+  - Impact if not addressed
+  - How to undo the fix
+```
 
 ---
 
-## 🛠️ Commands Reference
+## Security
 
-| Command | Purpose |
-|---------|---------|
-| `./run.sh` | Run audit with TUI |
-| `./run.sh --auto-fix` | Interactive auto-fix mode |
-| `./run.sh --preview` | Preview fixes without executing |
-| `./run.sh --export csv\|md\|json` | Export report in format |
-| `./run.sh --diff` | Compare with previous audit |
-| `./run.sh --stats` | Show history and trends |
-| `./run.sh --history` | List recent audits |
-| `./run.sh --config` | Show current configuration |
-| `./run.sh --create-config` | Create default config file |
-| `./run.sh --help` | Show all options |
+Recent improvements (v2.1):
+- Safe command execution: no shell interpretation
+- Path traversal protection in exports
+- Input validation and error handling
+- Specific exception catching (not broad catches)
+- Comprehensive logging for debugging
 
 ---
 
-## 📋 Requirements
+## Requirements
 
-- **OS**: Arch Linux
-- **Python**: 3.10 or later
-- **Tools**: pacman, systemctl, journalctl (standard on Arch)
-
----
-
-## 📜 License
-
-MIT License - See LICENSE file for details
+- OS: Arch Linux
+- Python: 3.8 or later
+- Pacman, systemctl, journalctl (standard on Arch)
 
 ---
 
-## 🤝 Contributing
+## License
 
-Found a bug? Have an idea?
-- Open an issue on [GitHub](https://github.com/sarkoidose/arch-audit/issues)
-- Submit a pull request
-- Share feedback and feature requests
+MIT License
 
 ---
 
-<div align="center">
+## Contributing
 
-**Made with ❤️ for Arch Linux users**
+Found an issue? Have a suggestion?
 
-[GitHub](https://github.com/sarkoidose/arch-audit) • [Issues](https://github.com/sarkoidose/arch-audit/issues)
-
-</div>
+- Report bugs: [GitHub Issues](https://github.com/sarkoidose/arch-audit/issues)
+- Submit improvements: [GitHub Pull Requests](https://github.com/sarkoidose/arch-audit)
